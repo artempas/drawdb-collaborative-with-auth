@@ -48,6 +48,8 @@ import {
   getVisibleFieldEntries,
   getVisibleFields,
   getRelationshipFields,
+  getUniqueConstraintLegend,
+  UNIQUE_LEGEND_ROW_HEIGHT,
 } from "../../utils/utils";
 
 const uniqueConstraintColors = [
@@ -143,6 +145,8 @@ export default function Table({
     () => getVisibleFieldEntries(tableData, relationships),
     [tableData, relationships],
   );
+
+  const uniqueLegend = getUniqueConstraintLegend(tableData);
 
   const visibleFields = useMemo(
     () => getVisibleFields(tableData, relationships),
@@ -556,6 +560,34 @@ export default function Table({
               field(e, i, uniqueConstraints)
             );
           })}
+          {uniqueLegend.length > 0 && (
+            <div className="border-t border-gray-400 px-2 py-1 text-xs">
+              {uniqueLegend.map(({ constraint, index }) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 overflow-hidden whitespace-nowrap"
+                  style={{ height: UNIQUE_LEGEND_ROW_HEIGHT }}
+                  title={`${constraint.name} (${constraint.fields.join(", ")})`}
+                >
+                  <span
+                    className="shrink-0 rounded border px-1 text-[10px] leading-4 font-mono font-semibold"
+                    style={{
+                      color: uniqueConstraintColor(index),
+                      borderColor: uniqueConstraintColor(index),
+                    }}
+                  >
+                    {uniqueConstraintLabel(index)}
+                  </span>
+                  <span className="overflow-hidden text-ellipsis">
+                    {constraint.name}
+                    <span className="text-zinc-400">
+                      {` (${constraint.fields.join(", ")})`}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </foreignObject>
       <SideSheet

@@ -245,6 +245,25 @@ export function getFieldOffsetY(
   return total;
 }
 
+export const UNIQUE_LEGEND_ROW_HEIGHT = 20;
+const UNIQUE_LEGEND_PADDING = 8;
+
+export function getUniqueConstraintLegend(table) {
+  return (table.uniqueConstraints ?? [])
+    .map((constraint, index) => ({ constraint, index }))
+    .filter(({ constraint }) => constraint.fields?.length > 0);
+}
+
+export function getUniqueLegendHeight(table) {
+  const count = getUniqueConstraintLegend(table).length;
+  if (count === 0) return 0;
+  return (
+    count * UNIQUE_LEGEND_ROW_HEIGHT +
+    UNIQUE_LEGEND_PADDING +
+    FIELD_BORDER_WIDTH
+  );
+}
+
 export function getTableHeight(
   table,
   width,
@@ -257,6 +276,7 @@ export function getTableHeight(
     getFieldsTotalHeight(visibleFields, width, showComments) +
     tableHeaderHeight +
     tableColorStripHeight +
-    getCommentHeight(table.comment, width, showComments)
+    getCommentHeight(table.comment, width, showComments) +
+    getUniqueLegendHeight(table)
   );
 }
