@@ -433,7 +433,7 @@ export default function Table({
               </div>
             </div>
             {tableData.comment && settings.showComments && (
-              <div className="text-xs px-3 line-clamp-5">
+              <div className="text-xs px-3 line-clamp-5 whitespace-pre-line">
                 {tableData.comment}
               </div>
             )}
@@ -505,7 +505,7 @@ export default function Table({
                       <strong>{t("default_value")}: </strong>
                       {e.default === "" ? t("not_set") : e.default}
                     </p>
-                    <p className="max-w-80">
+                    <p className="max-w-80 whitespace-pre-line">
                       <strong>{t("comment")}: </strong>
                       {e.comment === "" ? t("not_set") : e.comment}
                     </p>
@@ -665,7 +665,7 @@ export default function Table({
         {showFieldComment && (
           <div className="ms-3 px-3 pb-3">
             <div
-              className={`text-xs line-clamp-2 ${settings.mode === "light" ? "text-zinc-600" : "text-zinc-200"}`}
+              className={`text-xs line-clamp-2 whitespace-pre-line ${settings.mode === "light" ? "text-zinc-600" : "text-zinc-200"}`}
             >
               {fieldData.comment}
             </div>

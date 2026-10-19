@@ -89,12 +89,14 @@ function getCommentMeasureCtx() {
 function countWrappedLines(comment, contentWidth, maxLines) {
   const ctx = getCommentMeasureCtx();
   const spaceWidth = ctx.measureText(" ").width;
-  const paragraphs = comment.split("\n");
+  // Comments are rendered with `white-space: pre-line`: newlines start a new
+  // line, other whitespace collapses, and trailing newlines are ignored.
+  const paragraphs = comment.replace(/\s+$/, "").split("\n");
   let lines = 0;
 
   for (const paragraph of paragraphs) {
     if (lines >= maxLines) break;
-    if (!paragraph) {
+    if (!paragraph.trim()) {
       lines++;
       continue;
     }
