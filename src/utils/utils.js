@@ -89,25 +89,35 @@ function getCommentMeasureCtx() {
 function countWrappedLines(comment, contentWidth, maxLines) {
   const ctx = getCommentMeasureCtx();
   const spaceWidth = ctx.measureText(" ").width;
-  // Comments are rendered with normal white-space, so newlines collapse into
-  // spaces and must not start a new line here.
-  const words = comment.split(/\s+/).filter(Boolean);
+  // Comments are rendered with `white-space: pre-line`: newlines start a new
+  // line, other whitespace collapses, and trailing newlines are ignored.
+  const paragraphs = comment.replace(/\s+$/, "").split("\n");
   let lines = 0;
-  let lineWidth = 0;
 
-  for (const word of words) {
-    const wordWidth = ctx.measureText(word).width;
-    if (lineWidth === 0) {
-      lineWidth = wordWidth;
-    } else if (lineWidth + spaceWidth + wordWidth <= contentWidth) {
-      lineWidth += spaceWidth + wordWidth;
-    } else {
+  for (const paragraph of paragraphs) {
+    if (lines >= maxLines) break;
+    if (!paragraph.trim()) {
       lines++;
-      if (lines >= maxLines) break;
-      lineWidth = wordWidth;
+      continue;
     }
+
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    let lineWidth = 0;
+
+    for (const word of words) {
+      const wordWidth = ctx.measureText(word).width;
+      if (lineWidth === 0) {
+        lineWidth = wordWidth;
+      } else if (lineWidth + spaceWidth + wordWidth <= contentWidth) {
+        lineWidth += spaceWidth + wordWidth;
+      } else {
+        lines++;
+        if (lines >= maxLines) break;
+        lineWidth = wordWidth;
+      }
+    }
+    if (lineWidth > 0) lines++;
   }
-  if (lineWidth > 0 && lines < maxLines) lines++;
 
   return Math.min(maxLines, Math.max(1, lines));
 }
