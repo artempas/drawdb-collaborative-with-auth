@@ -89,33 +89,25 @@ function getCommentMeasureCtx() {
 function countWrappedLines(comment, contentWidth, maxLines) {
   const ctx = getCommentMeasureCtx();
   const spaceWidth = ctx.measureText(" ").width;
-  const paragraphs = comment.split("\n");
+  // Comments are rendered with normal white-space, so newlines collapse into
+  // spaces and must not start a new line here.
+  const words = comment.split(/\s+/).filter(Boolean);
   let lines = 0;
+  let lineWidth = 0;
 
-  for (const paragraph of paragraphs) {
-    if (lines >= maxLines) break;
-    if (!paragraph) {
+  for (const word of words) {
+    const wordWidth = ctx.measureText(word).width;
+    if (lineWidth === 0) {
+      lineWidth = wordWidth;
+    } else if (lineWidth + spaceWidth + wordWidth <= contentWidth) {
+      lineWidth += spaceWidth + wordWidth;
+    } else {
       lines++;
-      continue;
+      if (lines >= maxLines) break;
+      lineWidth = wordWidth;
     }
-
-    const words = paragraph.split(/\s+/).filter(Boolean);
-    let lineWidth = 0;
-
-    for (const word of words) {
-      const wordWidth = ctx.measureText(word).width;
-      if (lineWidth === 0) {
-        lineWidth = wordWidth;
-      } else if (lineWidth + spaceWidth + wordWidth <= contentWidth) {
-        lineWidth += spaceWidth + wordWidth;
-      } else {
-        lines++;
-        if (lines >= maxLines) break;
-        lineWidth = wordWidth;
-      }
-    }
-    if (lineWidth > 0) lines++;
   }
+  if (lineWidth > 0 && lines < maxLines) lines++;
 
   return Math.min(maxLines, Math.max(1, lines));
 }
