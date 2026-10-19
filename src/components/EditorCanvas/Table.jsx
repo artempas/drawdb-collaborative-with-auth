@@ -466,7 +466,8 @@ export default function Table({
                           e.size &&
                           e.size !== ""
                             ? "(" + e.size + ")"
-                            : "")}
+                            : "") +
+                          (e.isArray ? "[]" : "")}
                       </p>
                     </div>
                     <hr />
@@ -656,7 +657,8 @@ export default function Table({
                     fieldData.size &&
                     fieldData.size !== ""
                       ? `(${fieldData.size})`
-                      : "")}
+                      : "") +
+                    (fieldData.isArray ? "[]" : "")}
                 </span>
               </div>
             ) : null}
