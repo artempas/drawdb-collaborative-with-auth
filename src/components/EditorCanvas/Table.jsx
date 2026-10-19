@@ -50,6 +50,20 @@ import {
   getRelationshipFields,
 } from "../../utils/utils";
 
+const uniqueConstraintColors = [
+  "#d97706",
+  "#0d9488",
+  "#db2777",
+  "#7c3aed",
+  "#2563eb",
+  "#65a30d",
+];
+
+const uniqueConstraintColor = (index) =>
+  uniqueConstraintColors[index % uniqueConstraintColors.length];
+
+const uniqueConstraintLabel = (index) => `U${index + 1}`;
+
 export default function Table({
   tableData,
   onPointerDown,
@@ -277,6 +291,11 @@ export default function Table({
     return { tableName: refTable.name, fieldName: refField.name };
   };
 
+  const getFieldUniqueConstraints = (fieldData) =>
+    (tableData.uniqueConstraints ?? [])
+      .map((constraint, index) => ({ constraint, index }))
+      .filter(({ constraint }) => constraint.fields?.includes(fieldData.name));
+
   if (tableData.hidden) return null;
 
   return (
@@ -442,6 +461,7 @@ export default function Table({
           {visibleFieldEntries.map(({ field: e }, i) => {
             const resolved = resolveType(database, e.type);
             const reference = getFieldReference(e);
+            const uniqueConstraints = getFieldUniqueConstraints(e);
             return settings.showFieldSummary ? (
               <Popover
                 key={e.id ?? i}
@@ -481,6 +501,16 @@ export default function Table({
                         {t("unique")}
                       </Tag>
                     )}
+                    {uniqueConstraints.map(({ constraint, index }) => (
+                      <Tag
+                        key={index}
+                        color="amber"
+                        className="me-2 my-2"
+                        style={{ color: uniqueConstraintColor(index) }}
+                      >
+                        {`${uniqueConstraintLabel(index)}: ${constraint.name}`}
+                      </Tag>
+                    ))}
                     {e.notNull && (
                       <Tag color="purple" className="me-2 my-2">
                         {t("not_null")}
@@ -520,10 +550,10 @@ export default function Table({
                     : { direction: "ltr" }
                 }
               >
-                {field(e, i)}
+                {field(e, i, uniqueConstraints)}
               </Popover>
             ) : (
-              field(e, i)
+              field(e, i, uniqueConstraints)
             );
           })}
         </div>
@@ -549,7 +579,7 @@ export default function Table({
     </>
   );
 
-  function field(fieldData, index) {
+  function field(fieldData, index, uniqueConstraints) {
     const fieldResolved = resolveType(database, fieldData.type);
     const showFieldComment = fieldData.comment && settings.showComments;
     return (
@@ -623,6 +653,19 @@ export default function Table({
             <span className="overflow-hidden text-ellipsis whitespace-nowrap">
               {fieldData.name}
             </span>
+            {uniqueConstraints.map(({ constraint, index: constraintIndex }) => (
+              <span
+                key={constraintIndex}
+                className="shrink-0 rounded border px-1 text-[10px] leading-4 font-mono font-semibold"
+                style={{
+                  color: uniqueConstraintColor(constraintIndex),
+                  borderColor: uniqueConstraintColor(constraintIndex),
+                }}
+                title={`${t("unique")}: ${constraint.name} (${constraint.fields.join(", ")})`}
+              >
+                {uniqueConstraintLabel(constraintIndex)}
+              </span>
+            ))}
           </div>
           <div className="text-zinc-400">
             {hoveredField === index ? (
