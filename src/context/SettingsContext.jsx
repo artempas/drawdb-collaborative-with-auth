@@ -12,10 +12,10 @@ const defaultSettings = {
   mode: "light",
   autosave: true,
   showCardinality: true,
-  showRelationshipLabels: true,
+  showRelationshipLabels: false,
   tableWidth: tableWidth,
   showDebugCoordinates: false,
-  showComments: false,
+  showComments: true,
 };
 
 export const SettingsContext = createContext({
