@@ -1,5 +1,31 @@
 export const defaultBlue = "#175e7a";
 export const defaultNoteTheme = "#fcf7ac";
+export const colorPalette = [
+  "#175e7a",
+  "#2563eb",
+  "#6366f1",
+  "#7c3aed",
+  "#c026d3",
+  "#e11d48",
+  "#dc2626",
+  "#ea580c",
+  "#d97706",
+  "#65a30d",
+  "#16a34a",
+  "#0d9488",
+  "#0891b2",
+  "#475569",
+  "#1f2937",
+  "#fcf7ac",
+  "#fde68a",
+  "#fecaca",
+  "#fbcfe8",
+  "#ddd6fe",
+  "#bfdbfe",
+  "#a7f3d0",
+  "#d9f99d",
+  "#e5e7eb",
+];
 export const noteWidth = 180;
 export const noteRadius = 3;
 export const noteFold = 24;
