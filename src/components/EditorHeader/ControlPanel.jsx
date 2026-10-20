@@ -66,6 +66,7 @@ import {
   useEnums,
   useFullscreen,
   useNavigateWithParams,
+  useCollab,
 } from "../../hooks";
 import { enterFullscreen, exitFullscreen } from "../../utils/fullscreen";
 import { dataURItoBlob } from "../../utils/utils";
@@ -86,6 +87,8 @@ import { exportSavedData } from "../../utils/exportSavedData";
 import { diagramApi } from "../../api/diagrams";
 import { nanoid } from "nanoid";
 import { getTableHeight } from "../../utils/utils";
+import { LayoutType } from "../../utils/autoLayout/index.js";
+import { layoutDiagramTables } from "../../utils/arrangeTables";
 import { deleteFromCache, STORAGE_KEY } from "../../utils/cache";
 import { DateTime } from "luxon";
 import ConfigureCustomTypes from "./ConfigureCustomTypes";
@@ -142,6 +145,7 @@ export default function ControlPanel({
   const { notes, setNotes, updateNote, addNote, deleteNote } = useNotes();
   const { areas, setAreas, updateArea, addArea, deleteArea } = useAreas();
   const { undoStack, redoStack, setUndoStack, setRedoStack } = useUndoRedo();
+  const { acquireTableLocks, releaseTableLocks } = useCollab();
   const { selectedElement, setSelectedElement } = useSelect();
   const { transform, setTransform } = useTransform();
   const { t, i18n } = useTranslation();
@@ -585,7 +589,8 @@ export default function ControlPanel({
   };
   const resetView = () =>
     setTransform((prev) => ({ ...prev, zoom: 1, pan: { x: 0, y: 0 } }));
-  const fitWindow = () => {
+  const fitWindow = () => fitContent(tables);
+  const fitContent = (tables) => {
     const canvas = document.getElementById("canvas").getBoundingClientRect();
 
     const minMaxXY = {
@@ -645,6 +650,48 @@ export default function ControlPanel({
       zoom: scale,
       pan: { x: centerX, y: centerY },
     }));
+  };
+  const autoArrange = async (type) => {
+    if (layout.readOnly || tables.length === 0) return;
+
+    const tableIds = tables.map((table) => table.id);
+    if (!(await acquireTableLocks(tableIds))) {
+      Toast.warning(t("collaboration_table_lock_unavailable"));
+      return;
+    }
+
+    const positions = layoutDiagramTables(type, tables, relationships, {
+      tableWidth: settings.tableWidth,
+      showComments: settings.showComments,
+    });
+    const moved = tables.filter((table) => {
+      const p = positions.get(table.id);
+      return p.x !== table.x || p.y !== table.y;
+    });
+
+    if (moved.length > 0) {
+      moved.forEach((table) => updateTable(table.id, positions.get(table.id)));
+      setUndoStack((prev) => [
+        ...prev,
+        {
+          action: Action.MOVE,
+          bulk: true,
+          message: t("auto_arrange"),
+          elements: moved.map((table) => ({
+            id: table.id,
+            type: ObjectType.TABLE,
+            undo: { x: table.x, y: table.y },
+            redo: positions.get(table.id),
+          })),
+        },
+      ]);
+      setRedoStack([]);
+    }
+    window.setTimeout(() => releaseTableLocks(tableIds), 2_000);
+
+    fitContent(
+      tables.map((table) => ({ ...table, ...positions.get(table.id) })),
+    );
   };
   const edit = () => {
     if (selectedElement.element === ObjectType.TABLE) {
@@ -1445,6 +1492,18 @@ export default function ControlPanel({
         function: copyAsImage,
         shortcut: "Ctrl+Alt+C",
       },
+      auto_arrange: {
+        children: [
+          ["layout_hierarchical", LayoutType.HIERARCHICAL],
+          ["layout_organic", LayoutType.ORGANIC],
+          ["layout_tree", LayoutType.TREE],
+          ["layout_orthogonal", LayoutType.ORTHOGONAL],
+        ].map(([name, type]) => ({
+          name: t(name),
+          function: () => autoArrange(type),
+          disabled: layout.readOnly,
+        })),
+      },
     },
     view: {
       header: {
@@ -1721,6 +1780,9 @@ export default function ControlPanel({
     preventDefault: true,
   });
   useHotkeys("mod+alt+w", fitWindow, { preventDefault: true });
+  useHotkeys("mod+alt+l", () => autoArrange(LayoutType.HIERARCHICAL), {
+    preventDefault: true,
+  });
   useHotkeys("alt+e", toggleDBMLEditor, { preventDefault: true });
 
   return (
