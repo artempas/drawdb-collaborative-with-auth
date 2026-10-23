@@ -56,6 +56,7 @@ export default function Table({
   setHoveredTable,
   handleGripField,
   setLinkingLine,
+  isDragging,
 }) {
   const [hoveredField, setHoveredField] = useState(null);
   const { layout } = useLayout();
@@ -514,6 +515,7 @@ export default function Table({
                 }
                 position="right"
                 showArrow
+                {...(isDragging ? { trigger: "custom", visible: false } : {})}
                 style={
                   isRtl(i18n.language)
                     ? { direction: "rtl" }

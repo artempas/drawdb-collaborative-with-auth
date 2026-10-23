@@ -852,6 +852,7 @@ export default function Canvas() {
               setHoveredTable={setHoveredTable}
               handleGripField={handleGripField}
               setLinkingLine={setLinkingLine}
+              isDragging={isDragging()}
               onPointerDown={() => {
                 elementPointerDown = {
                   element: table,
