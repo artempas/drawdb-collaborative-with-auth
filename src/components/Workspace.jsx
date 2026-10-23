@@ -338,7 +338,6 @@ export default function WorkSpace({ forcedDiagramId } = {}) {
     notes?.length,
     types?.length,
     relationships?.length,
-    transform.zoom,
     title,
     gistId,
     setSaveState,
