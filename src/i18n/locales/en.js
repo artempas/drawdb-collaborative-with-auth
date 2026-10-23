@@ -92,6 +92,8 @@ const en = {
     saving: "Saving...",
     failed_to_save: "Failed to save",
     auto_arrange: "Auto-arrange tables",
+    go_to_table: "Go to {{name}}",
+    related_tables: "Related tables",
     layout_hierarchical: "Hierarchical",
     layout_organic: "Organic",
     layout_tree: "Tree",

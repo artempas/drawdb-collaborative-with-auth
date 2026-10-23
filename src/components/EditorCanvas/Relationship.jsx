@@ -1,7 +1,15 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { Cardinality, ObjectType, Tab } from "../../data/constants";
 import { calcPath, calcCompositePath } from "../../utils/calcPath";
-import { useDiagram, useSettings, useLayout, useSelect } from "../../hooks";
+import {
+  useDiagram,
+  useSettings,
+  useLayout,
+  useSelect,
+  useCanvas,
+  useTransform,
+  useFocusTable,
+} from "../../hooks";
 import { useTranslation } from "react-i18next";
 import { SideSheet } from "@douyinfe/semi-ui";
 import RelationshipInfo from "../EditorSidePanel/RelationshipsTab/RelationshipInfo";
@@ -144,6 +152,51 @@ export default function Relationship({ data }) {
     cardinalityEndY = point2.y;
   }
 
+  const isSelected =
+    selectedElement.element === ObjectType.RELATIONSHIP &&
+    selectedElement.id === data.id;
+
+  // Points just inside both ends of the arc, used to place the jump badges.
+  // Each badge sits clear of the cardinality label, and `tip` is the actual
+  // end of the arc, so the badge arrow can point towards its table.
+  let jumpEnds = null;
+  if (isSelected && composite) {
+    const dir =
+      Math.sign(composite.endCardinality.x - composite.startCardinality.x) || 1;
+    jumpEnds = {
+      start: {
+        x: composite.startCardinality.x - dir * 36,
+        y: composite.startCardinality.y,
+        tip: composite.startCardinality,
+      },
+      end: {
+        x: composite.endCardinality.x + dir * 36,
+        y: composite.endCardinality.y,
+        tip: composite.endCardinality,
+      },
+    };
+  } else if (isSelected && pathRef.current) {
+    const pathLength = pathRef.current.getTotalLength();
+    const offset = Math.min(64, pathLength / 4);
+    const at = (length) => {
+      const { x, y } = pathRef.current.getPointAtLength(length);
+      return { x, y };
+    };
+    jumpEnds = {
+      start: { ...at(offset), tip: at(0) },
+      end: { ...at(pathLength - offset), tip: at(pathLength) },
+    };
+  }
+
+  const select = () => {
+    setSelectedElement((prev) => ({
+      ...prev,
+      element: ObjectType.RELATIONSHIP,
+      id: data.id,
+      open: false,
+    }));
+  };
+
   const edit = () => {
     if (!layout.sidebar) {
       setSelectedElement((prev) => ({
@@ -171,7 +224,12 @@ export default function Relationship({ data }) {
 
   return (
     <>
-      <g className="select-none group" onDoubleClick={edit}>
+      <g
+        className="select-none group"
+        data-relationship-ui
+        onClick={select}
+        onDoubleClick={edit}
+      >
         {/* invisible wider path for better hover ux */}
         <path
           d={
@@ -233,6 +291,13 @@ export default function Relationship({ data }) {
           </>
         )}
       </g>
+      {jumpEnds && (
+        <JumpBadges
+          ends={jumpEnds}
+          startTable={tables.find((tbl) => tbl.id === data.startTableId)}
+          endTable={tables.find((tbl) => tbl.id === data.endTableId)}
+        />
+      )}
       <SideSheet
         title={t("edit")}
         size="small"
@@ -255,6 +320,71 @@ export default function Relationship({ data }) {
         </div>
       </SideSheet>
     </>
+  );
+}
+
+const jumpBadgeRadius = 14;
+const jumpBadgeMargin = 8;
+
+// One badge per arc end. Rendered only for the selected arc so panning does
+// not re-render every arc. A badge whose end is off-screen is pinned to the
+// edge of the visible area, pointing towards its table.
+function JumpBadges({ ends, startTable, endTable }) {
+  const { canvas } = useCanvas();
+  const { transform } = useTransform();
+  const focusTable = useFocusTable();
+  const { t } = useTranslation();
+
+  const scale = 1 / transform.zoom;
+  const inset = (jumpBadgeRadius + jumpBadgeMargin) * scale;
+  const { viewBox } = canvas;
+
+  const badge = (end, table) => {
+    if (!table) return null;
+    const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
+    const x = clamp(end.x, viewBox.left + inset, viewBox.right - inset);
+    const y = clamp(end.y, viewBox.top + inset, viewBox.bottom - inset);
+    const angle = (Math.atan2(end.tip.y - y, end.tip.x - x) * 180) / Math.PI;
+    const label = t("go_to_table", { name: table.name });
+
+    return (
+      <g
+        key={table.id + ":" + end.tip.x}
+        transform={`translate(${x} ${y}) scale(${scale})`}
+        cursor="pointer"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          focusTable(table.id);
+        }}
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
+        <title>{label}</title>
+        <circle
+          r={jumpBadgeRadius}
+          className="fill-sky-600 hover:fill-sky-500"
+          stroke="white"
+          strokeWidth={2}
+        />
+        <path
+          d="M -6 0 H 6 M 1 -5 L 6 0 L 1 5"
+          transform={`rotate(${angle})`}
+          fill="none"
+          stroke="white"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          pointerEvents="none"
+        />
+      </g>
+    );
+  };
+
+  return (
+    <g data-relationship-ui>
+      {badge(ends.start, startTable)}
+      {badge(ends.end, endTable)}
+    </g>
   );
 }
 
