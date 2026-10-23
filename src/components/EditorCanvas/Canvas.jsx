@@ -469,6 +469,19 @@ export default function Canvas() {
 
     if (isMouseLeftButton) {
       const pointerDownElement = elementPointerDown;
+      // an arc stays selected (showing its jump badges) until something else is clicked
+      if (
+        pointerDownElement === null &&
+        selectedElement.element === ObjectType.RELATIONSHIP &&
+        !selectedElement.open &&
+        !e.target.closest?.("[data-relationship-ui]")
+      ) {
+        setSelectedElement((prev) => ({
+          ...prev,
+          element: ObjectType.NONE,
+          id: -1,
+        }));
+      }
       setBulkSelectRect({
         x1: pointer.spaces.diagram.x,
         y1: pointer.spaces.diagram.y,

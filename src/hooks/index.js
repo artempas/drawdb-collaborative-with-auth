@@ -1,5 +1,6 @@
 export { default as useAreas } from "./useAreas";
 export { default as useCanvas } from "./useCanvas";
+export { default as useFocusTable } from "./useFocusTable";
 export { default as useFullscreen } from "./useFullscreen";
 export { default as useLayout } from "./useLayout";
 export { default as useNotes } from "./useNotes";

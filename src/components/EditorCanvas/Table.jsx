@@ -15,6 +15,7 @@ import {
   IconEditStroked,
   IconCopyStroked,
   IconKeyStroked,
+  IconArrowRight,
   IconLock,
   IconUnlock,
 } from "@douyinfe/semi-icons";
@@ -35,6 +36,7 @@ import {
   useSelect,
   useUndoRedo,
   useCollab,
+  useFocusTable,
 } from "../../hooks";
 import TableInfo from "../EditorSidePanel/TablesTab/TableInfo";
 import { useTranslation } from "react-i18next";
@@ -69,6 +71,7 @@ export default function Table({
     updateTable,
   } = useDiagram();
   const { setUndoStack, setRedoStack } = useUndoRedo();
+  const focusTable = useFocusTable();
   const { settings } = useSettings();
   const { t } = useTranslation();
   const {
@@ -277,6 +280,40 @@ export default function Table({
     return { tableName: refTable.name, fieldName: refField.name };
   };
 
+  // tables the field points at through its outgoing relationships
+  const getFieldTargets = (fieldData) => {
+    const targets = new Map();
+    relationships.forEach((r) => {
+      if (r.startTableId !== tableData.id) return;
+      if (
+        !getRelationshipFields(r).some((p) => p.startFieldId === fieldData.id)
+      )
+        return;
+      const target = tables.find((tbl) => tbl.id === r.endTableId);
+      if (target && !target.hidden && target.id !== tableData.id) {
+        targets.set(target.id, target.name);
+      }
+    });
+    return [...targets].map(([id, name]) => ({ id, name }));
+  };
+
+  // every other table connected to this one, in either direction
+  const relatedTables = useMemo(() => {
+    const related = new Map();
+    relationships.forEach((r) => {
+      const otherId =
+        r.startTableId === tableData.id
+          ? r.endTableId
+          : r.endTableId === tableData.id
+            ? r.startTableId
+            : null;
+      if (otherId === null || otherId === tableData.id) return;
+      const other = tables.find((tbl) => tbl.id === otherId);
+      if (other && !other.hidden) related.set(other.id, other.name);
+    });
+    return [...related].map(([id, name]) => ({ id, name }));
+  }, [relationships, tables, tableData.id]);
+
   if (tableData.hidden) return null;
 
   return (
@@ -401,6 +438,29 @@ export default function Table({
                         >
                           {t("duplicate")}
                         </Button>
+                        {relatedTables.length > 0 && (
+                          <>
+                            <Divider className="!my-1" />
+                            <div className="px-3 py-1 text-xs text-zinc-400">
+                              {t("related_tables")}
+                            </div>
+                            <div className="max-h-[200px] overflow-y-auto">
+                              {relatedTables.map((rt) => (
+                                <Button
+                                  key={rt.id}
+                                  icon={<IconArrowRight />}
+                                  type="tertiary"
+                                  theme="borderless"
+                                  block
+                                  style={{ justifyContent: "flex-start" }}
+                                  onClick={() => focusTable(rt.id)}
+                                >
+                                  {rt.name}
+                                </Button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                         <Divider className="!my-1" />
                         <Button
                           icon={<IconDeleteStroked />}
@@ -552,6 +612,7 @@ export default function Table({
   function field(fieldData, index) {
     const fieldResolved = resolveType(database, fieldData.type);
     const showFieldComment = fieldData.comment && settings.showComments;
+    const targets = hoveredField === index ? getFieldTargets(fieldData) : [];
     return (
       <div
         className={`${
@@ -626,19 +687,65 @@ export default function Table({
           </div>
           <div className="text-zinc-400">
             {hoveredField === index ? (
-              <Button
-                theme="solid"
-                size="small"
-                style={{
-                  backgroundColor: "#d42020b3",
-                }}
-                icon={<IconMinus />}
-                disabled={layout.readOnly || lockedByParticipant}
-                onClick={() => {
-                  if (layout.readOnly) return;
-                  runWithTableLock(() => deleteField(fieldData, tableData.id));
-                }}
-              />
+              <div className="flex items-center gap-1">
+                {targets.length === 1 && (
+                  <Button
+                    size="small"
+                    type="tertiary"
+                    icon={<IconArrowRight />}
+                    title={t("go_to_table", { name: targets[0].name })}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => focusTable(targets[0].id)}
+                  />
+                )}
+                {targets.length > 1 && (
+                  <Popover
+                    content={
+                      <div className="popover-theme flex flex-col py-1 min-w-[160px] max-h-[200px] overflow-y-auto">
+                        {targets.map((target) => (
+                          <Button
+                            key={target.id}
+                            icon={<IconArrowRight />}
+                            type="tertiary"
+                            theme="borderless"
+                            block
+                            style={{ justifyContent: "flex-start" }}
+                            onClick={() => focusTable(target.id)}
+                          >
+                            {target.name}
+                          </Button>
+                        ))}
+                      </div>
+                    }
+                    position="right"
+                    trigger="click"
+                    showArrow
+                  >
+                    <Button
+                      size="small"
+                      type="tertiary"
+                      icon={<IconArrowRight />}
+                      title={t("related_tables")}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    />
+                  </Popover>
+                )}
+                <Button
+                  theme="solid"
+                  size="small"
+                  style={{
+                    backgroundColor: "#d42020b3",
+                  }}
+                  icon={<IconMinus />}
+                  disabled={layout.readOnly || lockedByParticipant}
+                  onClick={() => {
+                    if (layout.readOnly) return;
+                    runWithTableLock(() =>
+                      deleteField(fieldData, tableData.id),
+                    );
+                  }}
+                />
+              </div>
             ) : settings.showDataTypes ? (
               <div className="flex gap-1 items-center">
                 {fieldData.primary && <IconKeyStroked />}

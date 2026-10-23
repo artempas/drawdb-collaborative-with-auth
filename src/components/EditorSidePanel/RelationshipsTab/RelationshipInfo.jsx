@@ -9,6 +9,7 @@ import {
 } from "@douyinfe/semi-ui";
 import {
   IconClose,
+  IconArrowRight,
   IconDeleteStroked,
   IconPlus,
 } from "@douyinfe/semi-icons";
@@ -18,7 +19,12 @@ import {
   Action,
   ObjectType,
 } from "../../../data/constants";
-import { useDiagram, useLayout, useUndoRedo } from "../../../hooks";
+import {
+  useDiagram,
+  useLayout,
+  useUndoRedo,
+  useFocusTable,
+} from "../../../hooks";
 import { getRelationshipFields } from "../../../utils/utils";
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
@@ -28,6 +34,7 @@ export default function RelationshipInfo({ data }) {
   const { tables, deleteRelationship, updateRelationship } = useDiagram();
   const { t } = useTranslation();
   const { layout } = useLayout();
+  const focusTable = useFocusTable();
   const [editField, setEditField] = useState({});
 
   const startTable = useMemo(
@@ -235,10 +242,20 @@ export default function RelationshipInfo({ data }) {
         <div className="me-3">
           <span className="font-semibold">{t("primary")}: </span>
           {endTableName}
+          <GoToTableButton
+            name={endTableName}
+            disabled={!endTable || endTable.hidden}
+            onClick={() => focusTable(data.endTableId)}
+          />
         </div>
         <div className="mx-1">
           <span className="font-semibold">{t("foreign")}: </span>
           {startTableName}
+          <GoToTableButton
+            name={startTableName}
+            disabled={!startTable || startTable.hidden}
+            onClick={() => focusTable(data.startTableId)}
+          />
         </div>
         <Button
           icon={<i className="bi bi-arrow-left-right" />}
@@ -397,5 +414,21 @@ export default function RelationshipInfo({ data }) {
         {t("delete")}
       </Button>
     </>
+  );
+}
+
+function GoToTableButton({ name, disabled, onClick }) {
+  const { t } = useTranslation();
+  return (
+    <Button
+      icon={<IconArrowRight />}
+      type="tertiary"
+      theme="borderless"
+      size="small"
+      className="ms-1"
+      disabled={disabled}
+      onClick={onClick}
+      title={t("go_to_table", { name })}
+    />
   );
 }
