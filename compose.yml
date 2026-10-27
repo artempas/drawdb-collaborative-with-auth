@@ -1,13 +1,16 @@
 services:
   drawdb:
+    image: ghcr.io/artempas/drawdb-collaborative-with-auth:latest
     build: .
-    image: drawdb-collaborative
     restart: unless-stopped
-    ports: 
+    ports:
       - "3333:3000"
     environment:
       PORT: 3000
       DATABASE_PATH: /data/drawdb.sqlite
+      # Optional: passphrase for encrypting stored git access tokens. When
+      # unset, a key is generated once and kept in the database.
+      GIT_SECRET_KEY: ${GIT_SECRET_KEY:-}
     volumes:
       - drawdb-data:/data
 
