@@ -205,6 +205,27 @@ export default function RelationshipInfo({ data }) {
     updateRelationship(data.id, { [undoKey]: value });
   };
 
+  const resetArc = () => {
+    if (layout.readOnly) return;
+    setUndoStack((prev) => [
+      ...prev,
+      {
+        action: Action.EDIT,
+        element: ObjectType.RELATIONSHIP,
+        component: "self",
+        rid: data.id,
+        undo: { midOffset: data.midOffset },
+        redo: { midOffset: 0 },
+        message: t("edit_relationship", {
+          refName: data.name,
+          extra: "[path]",
+        }),
+      },
+    ]);
+    setRedoStack([]);
+    updateRelationship(data.id, { midOffset: 0 });
+  };
+
   return (
     <>
       <div className="flex items-center mb-2.5">
@@ -403,6 +424,18 @@ export default function RelationshipInfo({ data }) {
           </Collapse.Panel>
         </Collapse>
       </Card>
+
+      {!!data.midOffset && (
+        <Button
+          block
+          disabled={layout.readOnly}
+          icon={<i className="bi bi-arrow-counterclockwise" />}
+          onClick={resetArc}
+          className="mb-3"
+        >
+          {t("reset_arc")}
+        </Button>
+      )}
 
       <Button
         block

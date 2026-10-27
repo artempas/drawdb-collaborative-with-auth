@@ -77,6 +77,7 @@ const ru = {
     failed_to_save: "Не удалось сохранить",
     auto_arrange: "Авторасстановка таблиц",
     go_to_table: "Перейти к {{name}}",
+    reset_arc: "Сбросить положение дуги",
     related_tables: "Связанные таблицы",
     layout_hierarchical: "Иерархическая",
     layout_organic: "Органическая",
