@@ -53,8 +53,8 @@ Key additions include:
 ### Local Development
 
 ```bash
-git clone https://github.com/yms2772/drawdb-collaborative.git
-cd drawdb-collaborative
+git clone https://github.com/artempas/drawdb-collaborative-with-auth.git
+cd drawdb-collaborative-with-auth
 npm install
 npm run dev
 ```
@@ -66,21 +66,49 @@ side is needed.
 ### Build
 
 ```bash
-git clone https://github.com/yms2772/drawdb-collaborative.git
-cd drawdb-collaborative
+git clone https://github.com/artempas/drawdb-collaborative-with-auth.git
+cd drawdb-collaborative-with-auth
 npm install
 npm run build
 ```
 
-### Docker Build
+### Docker
+
+A multi-arch (`linux/amd64`, `linux/arm64`) image is published to the GitHub
+Container Registry on every push to `main` (tagged `latest` and `sha-<commit>`)
+and for every git tag (tagged with the tag name):
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Or without Compose:
+
+```bash
+docker run -d -p 3000:3000 -v drawdb-data:/data \
+  ghcr.io/artempas/drawdb-collaborative-with-auth:latest
+```
+
+To build the image from source instead:
 
 ```bash
 docker compose up --build
 ```
 
-Open `http://localhost:3000`. The single application container serves the
-frontend, diagram API, WebSocket collaboration endpoint, and SQLite storage.
-The Compose configuration persists the database in the `drawdb-data` volume.
+Open `http://localhost:3333` (the Compose file maps host port `3333` to the
+container's `3000`). The single application container serves the frontend,
+diagram API, WebSocket collaboration endpoint, and SQLite storage. The Compose
+configuration persists the database in the `drawdb-data` volume.
+
+Configuration is through environment variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PORT` | `3000` | Port the server listens on. |
+| `DATABASE_PATH` | `./data/drawdb.sqlite` (`/data/drawdb.sqlite` in the container) | SQLite database location. |
+| `GIT_WORKDIR` | `<DATABASE_PATH directory>/git` | Where git sync keeps its working copies. |
+| `GIT_SECRET_KEY` | generated and stored in the database | Passphrase the git access-token encryption key is derived from. |
 
 ### Collaborative self-hosting
 
