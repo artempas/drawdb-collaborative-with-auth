@@ -8,8 +8,10 @@ import { getCommentHeight, getFieldOffsetY } from "./utils";
  *   startTable: { x: number, y: number },
  *   endTable: { x: number, y: number },
  *   startFieldIndex: number,
- *   endFieldIndex: number
- * }} r - Relationship data.
+ *   endFieldIndex: number,
+ *   midOffset?: number
+ * }} r - Relationship data. `midOffset` shifts the vertical segment of the
+ *   arc horizontally from its default position.
  * @param {number} tableWidth - Width of each table (used to calculate horizontal offsets).
  * @param {number} zoom - Zoom level (used to scale vertical spacing).
  * @returns {string} SVG path "d" attribute string.
@@ -48,9 +50,20 @@ export function calcPath(r, tableWidth = 200, zoom = 1, showComments = true) {
   let radius = 10 * zoom;
   const midX = (x2 + x1 + width) / 2;
   const endX = x2 + width < x1 ? x2 + width : x2;
+  const midOffset = r.midOffset ?? 0;
 
   if (Math.abs(y1 - y2) <= 36 * zoom) {
     radius = Math.abs(y2 - y1) / 3;
+  }
+
+  // A moved arc: shift the vertical segment and reroute around it.
+  if (midOffset) {
+    const trunkX =
+      defaultTrunkX(x1, y1, x2, y2, width, midX, radius) + midOffset;
+    return orthogonalPath(x1, y1, x2, y2, width, trunkX, 10 * zoom);
+  }
+
+  if (Math.abs(y1 - y2) <= 36 * zoom) {
     if (radius <= 2) {
       if (x1 + width <= x2) return `M ${x1 + width} ${y1} L ${x2} ${y2 + 0.1}`;
       else if (x2 + width < x1)
@@ -126,6 +139,45 @@ export function calcPath(r, tableWidth = 200, zoom = 1, showComments = true) {
 }
 
 /**
+ * The x of the vertical segment drawn by `calcPath` for an arc that was not
+ * moved, mirroring its branches.
+ */
+function defaultTrunkX(x1, y1, x2, y2, width, midX, radius) {
+  if (y1 <= y2) {
+    if (x1 + width <= x2) return midX;
+    if (x2 <= x1 + width && x1 <= x2) return x2 + width + radius;
+    if (x2 + width >= x1 && x2 + width <= x1 + width) return x2 - 2 * radius;
+    return midX;
+  }
+  if (x1 + width <= x2) return midX;
+  if (x1 + width >= x2 && x1 + width <= x2 + width) return x1 - 3 * radius;
+  if (x1 >= x2 && x1 <= x2 + width) return x1 + width + 2 * radius;
+  return midX;
+}
+
+/**
+ * A rounded orthogonal connector whose vertical segment runs at `trunkX`.
+ * Each end leaves its table from the edge facing the vertical segment.
+ */
+function orthogonalPath(x1, y1, x2, y2, width, trunkX, maxRadius) {
+  const sx = trunkX < x1 + width / 2 ? x1 : x1 + width;
+  const ex = trunkX < x2 + width / 2 ? x2 : x2 + width;
+  const r = Math.min(
+    maxRadius,
+    Math.abs(y2 - y1) / 2,
+    Math.abs(trunkX - sx),
+    Math.abs(trunkX - ex),
+  );
+  if (r < 0.5) {
+    return `M ${sx} ${y1} L ${trunkX} ${y1} L ${trunkX} ${y2} L ${ex} ${y2}`;
+  }
+  const dxs = Math.sign(trunkX - sx);
+  const dxe = Math.sign(ex - trunkX);
+  const dy = Math.sign(y2 - y1);
+  return `M ${sx} ${y1} L ${trunkX - dxs * r} ${y1} Q ${trunkX} ${y1} ${trunkX} ${y1 + dy * r} L ${trunkX} ${y2 - dy * r} Q ${trunkX} ${y2} ${trunkX + dxe * r} ${y2} L ${ex} ${y2}`;
+}
+
+/**
  * Builds a "fork" path for a composite (multi-column) foreign key: a short
  * stub from every column on each table converges to a vertical collector,
  * the two collectors are joined by a single orthogonal trunk, and the trunk
@@ -136,6 +188,7 @@ export function calcPath(r, tableWidth = 200, zoom = 1, showComments = true) {
  *   endTable: { x: number, y: number, comment?: string, fields?: any[] },
  *   startFieldIndices: number[],
  *   endFieldIndices: number[],
+ *   midOffset?: number,
  * }} r
  * @returns {{
  *   path: string,
@@ -182,7 +235,7 @@ export function calcCompositePath(
   const maxE = Math.max(...endYs);
   const trunkStartY = (minS + maxS) / 2;
   const trunkEndY = (minE + maxE) / 2;
-  const midX = (mergeStartX + mergeEndX) / 2;
+  const midX = (mergeStartX + mergeEndX) / 2 + (r.midOffset ?? 0);
 
   const radius = 10 * zoom;
 
@@ -200,12 +253,13 @@ export function calcCompositePath(
     return `M ${fromX} ${fromY} L ${cornerX - dx * r} ${fromY} Q ${cornerX} ${fromY} ${cornerX} ${fromY + dy * r} L ${cornerX} ${toY}`;
   };
 
-  // The trunk: a rounded orthogonal connector between the two collectors.
+  // The trunk: a rounded orthogonal connector between the two collectors,
+  // its vertical run at midX.
   const trunk = (sx, sy, ex, ey) => {
     if (Math.abs(sy - ey) < 0.5) {
       return `M ${sx} ${sy} L ${ex} ${ey}`;
     }
-    const mx = (sx + ex) / 2;
+    const mx = midX;
     const dxs = Math.sign(mx - sx);
     const dxe = Math.sign(ex - mx);
     const dy = Math.sign(ey - sy);
@@ -213,6 +267,7 @@ export function calcCompositePath(
       radius,
       Math.abs(ey - sy) / 2,
       Math.abs(mx - sx) || radius,
+      Math.abs(ex - mx) || radius,
     );
     return `M ${sx} ${sy} L ${mx - dxs * r} ${sy} Q ${mx} ${sy} ${mx} ${sy + dy * r} L ${mx} ${ey - dy * r} Q ${mx} ${ey} ${mx + dxe * r} ${ey} L ${ex} ${ey}`;
   };

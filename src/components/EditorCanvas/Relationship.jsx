@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from "react";
-import { Cardinality, ObjectType, Tab } from "../../data/constants";
+import { Action, Cardinality, ObjectType, Tab } from "../../data/constants";
 import { calcPath, calcCompositePath } from "../../utils/calcPath";
 import {
   useDiagram,
@@ -9,6 +9,7 @@ import {
   useCanvas,
   useTransform,
   useFocusTable,
+  useUndoRedo,
 } from "../../hooks";
 import { useTranslation } from "react-i18next";
 import { SideSheet } from "@douyinfe/semi-ui";
@@ -23,9 +24,11 @@ const labelFontSize = 16;
 
 export default function Relationship({ data }) {
   const { settings } = useSettings();
-  const { tables, relationships } = useDiagram();
+  const { tables, relationships, updateRelationship } = useDiagram();
   const { layout } = useLayout();
-  const { selectedElement, setSelectedElement } = useSelect();
+  const { selectedElement, setSelectedElement, setBulkSelectedElements } =
+    useSelect();
+  const { setUndoStack, setRedoStack } = useUndoRedo();
   const { t } = useTranslation();
 
   const pathValues = useMemo(() => {
@@ -69,6 +72,7 @@ export default function Relationship({ data }) {
         comment: endTable.comment,
         fields: endFields,
       },
+      midOffset: data.midOffset ?? 0,
     };
   }, [tables, relationships, data]);
 
@@ -82,6 +86,7 @@ export default function Relationship({ data }) {
         endTable: pathValues.endTable,
         startFieldIndices: pathValues.startFieldIndices,
         endFieldIndices: pathValues.endFieldIndices,
+        midOffset: pathValues.midOffset,
       },
       settings.tableWidth,
       1,
@@ -197,6 +202,67 @@ export default function Relationship({ data }) {
     }));
   };
 
+  // Dragging the arc shifts its vertical segment horizontally. The shift is
+  // stored relative to the default route, so it follows the tables around.
+  const dragRef = useRef(null);
+
+  const pointerDiagramX = (e) => {
+    const svg = e.currentTarget.ownerSVGElement;
+    return new DOMPoint(e.clientX, e.clientY).matrixTransform(
+      svg.getScreenCTM().inverse(),
+    ).x;
+  };
+
+  const startDrag = (e) => {
+    if (layout.readOnly || !e.isPrimary || e.button !== 0) return;
+    if (selectedElement.open && !layout.sidebar) return;
+    // keep the canvas from starting a selection rectangle
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setBulkSelectedElements([]);
+    const offset = data.midOffset ?? 0;
+    dragRef.current = {
+      startX: pointerDiagramX(e),
+      startOffset: offset,
+      offset,
+    };
+  };
+
+  const drag = (e) => {
+    const state = dragRef.current;
+    if (!state) return;
+    e.stopPropagation();
+    const offset = Math.round(
+      state.startOffset + pointerDiagramX(e) - state.startX,
+    );
+    if (offset === state.offset) return;
+    state.offset = offset;
+    updateRelationship(data.id, { midOffset: offset });
+  };
+
+  const endDrag = () => {
+    const state = dragRef.current;
+    if (!state) return;
+    dragRef.current = null;
+    if (state.offset === state.startOffset) return;
+    setUndoStack((prev) => [
+      ...prev,
+      {
+        action: Action.EDIT,
+        element: ObjectType.RELATIONSHIP,
+        component: "self",
+        rid: data.id,
+        undo: { midOffset: state.startOffset },
+        redo: { midOffset: state.offset },
+        message: t("edit_relationship", {
+          refName: data.name,
+          extra: "[path]",
+        }),
+      },
+    ]);
+    setRedoStack([]);
+  };
+
   const edit = () => {
     if (!layout.sidebar) {
       setSelectedElement((prev) => ({
@@ -229,6 +295,10 @@ export default function Relationship({ data }) {
         data-relationship-ui
         onClick={select}
         onDoubleClick={edit}
+        onPointerDown={startDrag}
+        onPointerMove={drag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
       >
         {/* invisible wider path for better hover ux */}
         <path
@@ -245,7 +315,7 @@ export default function Relationship({ data }) {
           fill="none"
           stroke="transparent"
           strokeWidth={12}
-          cursor="pointer"
+          cursor={layout.readOnly ? "pointer" : "col-resize"}
         />
         <path
           ref={pathRef}
@@ -261,7 +331,7 @@ export default function Relationship({ data }) {
           }
           className="relationship-path"
           fill="none"
-          cursor="pointer"
+          cursor={layout.readOnly ? "pointer" : "col-resize"}
         />
         {settings.showRelationshipLabels && (
           <text
