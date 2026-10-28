@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from "react";
-import { Action, Cardinality, ObjectType, Tab } from "../../data/constants";
+import { Action, Cardinality, Constraint, ObjectType, Tab } from "../../data/constants";
 import { calcPath, calcCompositePath } from "../../utils/calcPath";
 import {
   useDiagram,
@@ -75,6 +75,10 @@ export default function Relationship({ data }) {
       midOffset: data.midOffset ?? 0,
     };
   }, [tables, relationships, data]);
+
+  const hasNoAction =
+    data.updateConstraint === Constraint.NONE ||
+    data.deleteConstraint === Constraint.NONE;
 
   const isComposite = (pathValues?.startFieldIndices?.length ?? 0) > 1;
 
@@ -329,7 +333,7 @@ export default function Relationship({ data }) {
                   settings.showComments,
                 )
           }
-          className="relationship-path"
+          className={`relationship-path${hasNoAction ? " no-action" : ""}`}
           fill="none"
           cursor={layout.readOnly ? "pointer" : "col-resize"}
         />
