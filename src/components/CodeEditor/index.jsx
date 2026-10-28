@@ -11,6 +11,8 @@ export default function CodeEditor({
   extraControls,
   filename,
   className = "",
+  formatOnMount = true,
+  onMount,
   ...props
 }) {
   const { settings } = useSettings();
@@ -30,9 +32,12 @@ export default function CodeEditor({
 
   const handleEditorMount = (editor, monaco) => {
     setUpDBML(monaco, database);
-    setTimeout(() => {
-      editor.getAction("editor.action.formatDocument").run();
-    }, 300);
+    if (formatOnMount) {
+      setTimeout(() => {
+        editor.getAction("editor.action.formatDocument").run();
+      }, 300);
+    }
+    onMount?.(editor, monaco);
   };
 
   return (

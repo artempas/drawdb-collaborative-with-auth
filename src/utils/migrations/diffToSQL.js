@@ -18,6 +18,13 @@ function getQuote(db) {
   return (s) => `"${s}"`;
 }
 
+export function customConstraintAddPrefix(tableName, constraintName, db) {
+  const q = getQuote(db);
+  return constraintName && constraintName.trim() !== ""
+    ? `ALTER TABLE ${q(tableName)} ADD CONSTRAINT ${q(constraintName)}`
+    : `ALTER TABLE ${q(tableName)} ADD`;
+}
+
 function parseType(field, db) {
   let res = field.type;
   const meta = dbToTypes[db]?.[field.type];
@@ -756,11 +763,13 @@ export const generateMigrationSQL = (
             const addCC = (cname, definition) =>
               database === DB.SQLITE
                 ? `-- SQLite does not support adding constraint ${q(cname)} to existing table ${q(name)}`
-                : `ALTER TABLE ${q(name)} ADD CONSTRAINT ${q(cname)} ${definition};`;
+                : `${customConstraintAddPrefix(name, cname, database)} ${definition.trim()};`;
             const dropCC = (cname) =>
               database === DB.SQLITE
                 ? `-- SQLite does not support dropping constraint ${q(cname)} from existing table ${q(name)}`
-                : `ALTER TABLE ${q(name)} DROP CONSTRAINT ${q(cname)};`;
+                : !cname || cname.trim() === ""
+                  ? `-- Unnamed constraint on ${q(name)}: drop it by its database-generated name`
+                  : `ALTER TABLE ${q(name)} DROP CONSTRAINT ${q(cname)};`;
 
             if (!property) {
               if (change.to && !change.from) {

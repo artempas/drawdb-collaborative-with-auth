@@ -104,11 +104,12 @@ export function customConstraintClause(table, quote) {
   return (
     ",\n" +
     constraints
-      .map((cc) =>
-        cc.name && cc.name.trim() !== ""
-          ? `\tCONSTRAINT ${quote(cc.name)} ${cc.definition.trim()}`
-          : `\t${cc.definition.trim()}`,
-      )
+      .map((cc) => {
+        const definition = cc.definition.trim().replace(/\n/g, "\n\t");
+        return cc.name && cc.name.trim() !== ""
+          ? `\tCONSTRAINT ${quote(cc.name)} ${definition}`
+          : `\t${definition}`;
+      })
       .join(",\n")
   );
 }
