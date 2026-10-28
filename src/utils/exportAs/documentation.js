@@ -94,7 +94,7 @@ export function jsonToDocumentation(obj) {
       if ((table.customConstraints || []).length > 0) {
         const ccRows = table.customConstraints.map((cc) => [
           cc.name,
-          `\`${cc.definition.replace(/\|/g, "\\|")}\``,
+          `\`${cc.definition.replace(/\s*\n\s*/g, " ").replace(/\|/g, "\\|")}\``,
         ]);
         customConstraintsSection =
           "\n#### Custom constraints\n" +
