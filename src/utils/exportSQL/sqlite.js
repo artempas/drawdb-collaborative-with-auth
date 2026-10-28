@@ -3,10 +3,12 @@ import {
   getInlineFK,
   parseDefault,
   uniqueConstraintClause,
+  partialUniqueStatements,
   customConstraintClause,
 } from "./shared";
 
 import { dbToTypes } from "../../data/datatypes";
+import { DB } from "../../data/constants";
 
 export function toSqlite(diagram) {
   return diagram.tables
@@ -44,7 +46,7 @@ export function toSqlite(diagram) {
               .map((f) => `"${f}"`)
               .join(", ")});`,
         )
-        .join("\n")}`;
+        .join("\n")}${partialUniqueStatements(table, DB.SQLITE, (s) => `"${s}"`)}`;
     })
     .join("\n");
 }

@@ -153,6 +153,7 @@ const en = {
     custom_constraints: "Custom constraints",
     add_custom_constraint: "Add custom constraint",
     constraint_definition: "Definition, e.g. CHECK (price > 0)",
+    unique_where: "WHERE condition (partial unique), e.g. deleted_at IS NULL",
     select_fields: "Select fields",
     title: "Title",
     not_set: "Not set",

@@ -1,7 +1,9 @@
 import { dbToTypes } from "../../data/datatypes";
+import { DB } from "../../data/constants";
 import {
   parseDefault,
   uniqueConstraintClause,
+  partialUniqueStatements,
   customConstraintClause,
   getFkColumnNames,
 } from "./shared";
@@ -48,7 +50,7 @@ export function toOracleSQL(diagram) {
                 .map((f) => `"${f}"`)
                 .join(", ")});`,
           )
-          .join("")}`}`,
+          .join("")}${partialUniqueStatements(table, DB.ORACLESQL, (s) => `"${s}"`)}`}`,
     )
     .join("\n")}\n${diagram.references
     .map((r) => {

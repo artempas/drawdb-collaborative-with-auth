@@ -5,6 +5,7 @@ import {
   getInlineFK,
   parseDefault,
   uniqueConstraintClause,
+  partialUniqueStatements,
   customConstraintClause,
   getFkColumnNames,
 } from "./shared";
@@ -42,9 +43,7 @@ export function getJsonType(f) {
 export function generateSchema(type) {
   return `{\n\t\t\t"$schema": "http://json-schema.org/draft-04/schema#",\n\t\t\t"type": "object",\n\t\t\t"properties": {\n\t\t\t\t${type.fields
     .map((f) => `"${f.name}" : ${getJsonType(f)}`)
-    .join(
-      ",\n\t\t\t\t",
-    )}\n\t\t\t},\n\t\t\t"additionalProperties": false\n\t\t}`;
+    .join(",\n\t\t\t\t")}\n\t\t\t},\n\t\t\t"additionalProperties": false\n\t\t}`;
 }
 
 export function getTypeString(
@@ -232,7 +231,7 @@ export function jsonToMySQL(obj) {
                 .map((f) => `\`${f}\``)
                 .join(", ")});`,
           )
-          .join("\n")}`}`,
+          .join("\n")}${partialUniqueStatements(table, DB.MYSQL, (s) => `\`${s}\``)}`}`,
     )
     .join("\n")}\n${obj.references
     .map((r) => {
@@ -343,7 +342,7 @@ export function jsonToPostgreSQL(obj) {
                 .map((f) => `"${f}"`)
                 .join(", ")});`,
           )
-          .join("\n")}`,
+          .join("\n")}${partialUniqueStatements(table, DB.POSTGRES, (s) => `"${s}"`)}`,
     )
     .join("\n")}\n${obj.references
     .map((r) => {
@@ -436,7 +435,7 @@ export function jsonToSQLite(obj) {
               .map((f) => `"${f}"`)
               .join(", ")});`,
         )
-        .join("\n")}`;
+        .join("\n")}${partialUniqueStatements(table, DB.SQLITE, (s) => `"${s}"`)}`;
     })
     .join("\n");
 }
@@ -485,7 +484,7 @@ export function jsonToMariaDB(obj) {
                 .map((f) => `\`${f}\``)
                 .join(", ")});`,
           )
-          .join("\n")}`}`,
+          .join("\n")}${partialUniqueStatements(table, DB.MARIADB, (s) => `\`${s}\``)}`}`,
     )
     .join("\n")}\n${obj.references
     .map((r) => {
@@ -561,7 +560,7 @@ export function jsonToSQLServer(obj) {
                 .map((f) => `[${f}]`)
                 .join(", ")});\nGO\n`,
           )
-          .join("")}`,
+          .join("")}${partialUniqueStatements(table, DB.MSSQL, (s) => `[${s}]`)}`,
     )
     .join("\n")}\n${obj.references
     .map((r) => {
@@ -638,7 +637,7 @@ export function jsonToOracleSQL(obj) {
                 table.name
               }" (${i.fields.map((f) => `"${f}"`).join(", ")});`,
           )
-          .join("\n")}`,
+          .join("\n")}${partialUniqueStatements(table, DB.ORACLESQL, (s) => `"${s}"`)}`,
     )
     .join("\n\n")}\n${obj.references
     .map((r) => {

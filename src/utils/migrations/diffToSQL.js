@@ -3,6 +3,8 @@ import {
   parseDefault,
   exportFieldComment,
   uniqueConstraintClause,
+  partialUniqueStatements,
+  partialUniqueStatement,
   customConstraintClause,
 } from "../exportSQL/shared";
 import { DB } from "../../data/constants";
@@ -185,7 +187,10 @@ GO`;
     db === DB.SQLITE && table.comment?.trim()
       ? `/* ${escapeQuotes(table.comment)} */\n`
       : "";
-  return [prefix, create, extra, indexStmts].filter(Boolean).join("\n");
+  const partialStmts = partialUniqueStatements(table, db, q).trim();
+  return [prefix, create, extra, indexStmts, partialStmts]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function resolveRel(diagram, rel) {
@@ -460,12 +465,8 @@ export const generateMigrationSQL = (
                     `EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'${escapeQuotes(String(change.from ?? "")).replace(/'/g, "''")}', @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'${name}', @level2type=N'COLUMN',@level2name=N'${columnName}';`,
                   );
                 } else if (database === DB.SQLITE) {
-                  up.push(
-                    `-- ${escapeQuotes(String(change.to ?? ""))};`,
-                  );
-                  down.push(
-                    `-- ${escapeQuotes(String(change.from ?? ""))};`,
-                  );
+                  up.push(`-- ${escapeQuotes(String(change.to ?? ""))};`);
+                  down.push(`-- ${escapeQuotes(String(change.from ?? ""))};`);
                 } else {
                   up.push(
                     `COMMENT ON COLUMN ${q(name)}.${q(columnName)} IS '${escapeQuotes(String(change.to ?? ""))}';`,
@@ -640,23 +641,51 @@ export const generateMigrationSQL = (
           if (childPart.startsWith("uniqueConstraints")) {
             const property = keys[2];
             const ucFields = (arr) => (arr || []).map((f) => q(f)).join(", ");
-            const addUC = (cname, fields) =>
-              database === DB.SQLITE
-                ? `CREATE UNIQUE INDEX IF NOT EXISTS ${q(cname)} ON ${q(name)} (${ucFields(fields)});`
-                : `ALTER TABLE ${q(name)} ADD CONSTRAINT ${q(cname)} UNIQUE (${ucFields(fields)});`;
-            const dropUC = (cname) =>
-              database === DB.SQLITE
-                ? `DROP INDEX ${q(cname)};`
-                : `ALTER TABLE ${q(name)} DROP CONSTRAINT ${q(cname)};`;
+            const ucDiagrams = (diagram) =>
+              (diagram?.tables || []).find((t) => t.name === name)
+                ?.uniqueConstraints || [];
+            const currentWhere = (cname, diagram) =>
+              ucDiagrams(diagram).find((u) => u.name === cname)?.where;
+            const addUC = (cname, fields, where) =>
+              typeof where === "string" && where.trim() !== ""
+                ? partialUniqueStatement(
+                    name,
+                    { name: cname, fields: fields || [], where },
+                    database,
+                    q,
+                  )
+                : database === DB.SQLITE
+                  ? `CREATE UNIQUE INDEX IF NOT EXISTS ${q(cname)} ON ${q(name)} (${ucFields(fields)});`
+                  : `ALTER TABLE ${q(name)} ADD CONSTRAINT ${q(cname)} UNIQUE (${ucFields(fields)});`;
+            const dropUC = (cname, where) =>
+              typeof where === "string" && where.trim() !== ""
+                ? database === DB.MYSQL ||
+                  database === DB.MARIADB ||
+                  database === DB.ORACLESQL
+                  ? `-- Partial unique constraint ${q(cname)} was not created for this database`
+                  : database === DB.MSSQL
+                    ? `DROP INDEX ${q(cname)} ON ${q(name)};`
+                    : `DROP INDEX ${q(cname)};`
+                : database === DB.SQLITE
+                  ? `DROP INDEX ${q(cname)};`
+                  : `ALTER TABLE ${q(name)} DROP CONSTRAINT ${q(cname)};`;
 
             if (!property) {
               if (change.to && !change.from) {
-                up.push(addUC(change.to.name, change.to.fields));
-                down.push(dropUC(change.to.name));
+                up.push(
+                  addUC(change.to.name, change.to.fields, change.to.where),
+                );
+                down.push(dropUC(change.to.name, change.to.where));
               }
               if (change.from && !change.to) {
-                up.push(dropUC(change.from.name));
-                down.push(addUC(change.from.name, change.from.fields));
+                up.push(dropUC(change.from.name, change.from.where));
+                down.push(
+                  addUC(
+                    change.from.name,
+                    change.from.fields,
+                    change.from.where,
+                  ),
+                );
               }
             }
 
@@ -689,10 +718,30 @@ export const generateMigrationSQL = (
                 Array.isArray(change.from) &&
                 Array.isArray(change.to)
               ) {
-                up.push(dropUC(constraintName));
-                up.push(addUC(constraintName, change.to));
-                down.push(dropUC(constraintName));
-                down.push(addUC(constraintName, change.from));
+                const where = currentWhere(constraintName, diagrams?.to);
+                up.push(dropUC(constraintName, where));
+                up.push(addUC(constraintName, change.to, where));
+                down.push(dropUC(constraintName, where));
+                down.push(addUC(constraintName, change.from, where));
+              }
+            }
+
+            if (property === "where") {
+              const ns = childPart.indexOf("name=");
+              const constraintName =
+                ns >= 0
+                  ? childPart.substring(ns + 5, childPart.indexOf("]", ns))
+                  : "";
+              const fields = (
+                ucDiagrams(diagrams?.to).find(
+                  (u) => u.name === constraintName,
+                ) || {}
+              ).fields;
+              if (constraintName && Array.isArray(fields)) {
+                up.push(dropUC(constraintName, change.from));
+                up.push(addUC(constraintName, fields, change.to));
+                down.push(dropUC(constraintName, change.to));
+                down.push(addUC(constraintName, fields, change.from));
               }
             }
           }

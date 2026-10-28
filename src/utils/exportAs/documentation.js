@@ -83,10 +83,11 @@ export function jsonToDocumentation(obj) {
         const ucRows = table.uniqueConstraints.map((uc) => [
           uc.name,
           uc.fields.join(", "),
+          uc.where ? `\`${uc.where.replace(/\|/g, "\\|")}\`` : "",
         ]);
         uniqueConstraintsSection =
           "\n#### Unique constraints\n" +
-          formatMarkdownTable(["Name", "Fields"], ucRows);
+          formatMarkdownTable(["Name", "Fields", "Where"], ucRows);
       }
 
       let customConstraintsSection = "";

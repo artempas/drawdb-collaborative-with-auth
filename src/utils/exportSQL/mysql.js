@@ -2,6 +2,7 @@ import {
   escapeQuotes,
   parseDefault,
   uniqueConstraintClause,
+  partialUniqueStatements,
   customConstraintClause,
   getFkColumnNames,
 } from "./shared";
@@ -66,7 +67,7 @@ export function toMySQL(diagram) {
                 .map((f) => `\`${f}\``)
                 .join(", ")});`,
           )
-          .join("")}`}`,
+          .join("")}${partialUniqueStatements(table, DB.MYSQL, (s) => `\`${s}\``)}`}`,
     )
     .join("\n")}\n${diagram.references
     .map((r) => {

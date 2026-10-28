@@ -136,6 +136,8 @@ const ru = {
     custom_constraints: "Пользовательские ограничения",
     add_custom_constraint: "Добавить пользовательское ограничение",
     constraint_definition: "Определение, например CHECK (price > 0)",
+    unique_where:
+      "Условие WHERE (частичная уникальность), например deleted_at IS NULL",
     select_fields: "Выберите поля",
     title: "Заголовок",
     not_set: "Не установлено",
