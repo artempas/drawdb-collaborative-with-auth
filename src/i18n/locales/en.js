@@ -150,6 +150,9 @@ const en = {
     add_index: "Add index",
     unique_constraints: "Unique constraints",
     add_unique_constraint: "Add unique constraint",
+    custom_constraints: "Custom constraints",
+    add_custom_constraint: "Add custom constraint",
+    constraint_definition: "Definition, e.g. CHECK (price > 0)",
     select_fields: "Select fields",
     title: "Title",
     not_set: "Not set",
@@ -204,6 +207,10 @@ const en = {
     duplicate_index:
       "Duplicate index by name '{{indexName}}' in table '{{tableName}}'",
     empty_index: "Index in table '{{tableName}}' indexes no columns",
+    duplicate_constraint:
+      "Duplicate constraint by name '{{constraintName}}' in table '{{tableName}}'",
+    empty_constraint:
+      "Custom constraint in table '{{tableName}}' has no definition",
     no_primary_key: "Table '{{tableName}}' has no primary key",
     type_with_no_name: "Declared a type with no name",
     duplicate_types: "Duplicate types by the name '{{typeName}}'",

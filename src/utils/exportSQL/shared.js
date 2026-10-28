@@ -60,6 +60,24 @@ export function uniqueConstraintClause(table, quote) {
   );
 }
 
+export function customConstraintClause(table, quote) {
+  const constraints = (table.customConstraints || []).filter(
+    (cc) => typeof cc.definition === "string" && cc.definition.trim() !== "",
+  );
+  if (constraints.length === 0) return "";
+
+  return (
+    ",\n" +
+    constraints
+      .map((cc) =>
+        cc.name && cc.name.trim() !== ""
+          ? `\tCONSTRAINT ${quote(cc.name)} ${cc.definition.trim()}`
+          : `\t${cc.definition.trim()}`,
+      )
+      .join(",\n")
+  );
+}
+
 export function getInlineFK(table, obj) {
   let fks = [];
   obj.references.forEach((r) => {

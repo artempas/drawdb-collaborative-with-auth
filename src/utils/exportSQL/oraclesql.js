@@ -2,6 +2,7 @@ import { dbToTypes } from "../../data/datatypes";
 import {
   parseDefault,
   uniqueConstraintClause,
+  customConstraintClause,
   getFkColumnNames,
 } from "./shared";
 
@@ -40,7 +41,7 @@ export function toOracleSQL(diagram) {
                 .map((f) => `"${f.name}"`)
                 .join(", ")})`
             : ""
-        }${uniqueConstraintClause(table, (s) => `"${s}"`)}\n)${table.comment ? ` -- ${table.comment}` : ""};\n${`\n${table.indices
+        }${uniqueConstraintClause(table, (s) => `"${s}"`)}${customConstraintClause(table, (s) => `"${s}"`)}\n)${table.comment ? ` -- ${table.comment}` : ""};\n${`\n${table.indices
           .map(
             (i) =>
               `\nCREATE ${i.unique ? "UNIQUE " : ""}INDEX "${i.name}"\nON "${table.name}" (${i.fields

@@ -2,6 +2,7 @@ import {
   escapeQuotes,
   parseDefault,
   uniqueConstraintClause,
+  customConstraintClause,
   getFkColumnNames,
 } from "./shared";
 
@@ -52,7 +53,7 @@ export function toMariaDB(diagram) {
                 .map((f) => `\`${f.name}\``)
                 .join(", ")})`
             : ""
-        }${uniqueConstraintClause(table, (s) => `\`${s}\``)}\n)${table.comment ? ` COMMENT='${escapeQuotes(table.comment)}'` : ""};${`\n${table.indices
+        }${uniqueConstraintClause(table, (s) => `\`${s}\``)}${customConstraintClause(table, (s) => `\`${s}\``)}\n)${table.comment ? ` COMMENT='${escapeQuotes(table.comment)}'` : ""};${`\n${table.indices
           .map(
             (i) =>
               `\nCREATE ${i.unique ? "UNIQUE " : ""}INDEX \`${

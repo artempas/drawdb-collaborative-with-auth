@@ -3,6 +3,7 @@ import {
   exportFieldComment,
   parseDefault,
   uniqueConstraintClause,
+  customConstraintClause,
   getFkColumnNames,
 } from "./shared";
 import { dbToTypes } from "../../data/datatypes";
@@ -65,7 +66,9 @@ export function toPostgres(diagram) {
             .join(", ")})`
         : "";
 
-      const uniqueClause = uniqueConstraintClause(table, (s) => `"${s}"`);
+      const uniqueClause =
+        uniqueConstraintClause(table, (s) => `"${s}"`) +
+        customConstraintClause(table, (s) => `"${s}"`);
 
       const commentStatements = [
         table.comment?.trim()

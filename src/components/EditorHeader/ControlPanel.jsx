@@ -296,6 +296,34 @@ export default function ControlPanel({
               id: i,
             })),
           });
+        } else if (a.component === "custom_constraint_add") {
+          const constraints = table.customConstraints || [];
+          updateTable(a.tid, {
+            customConstraints: constraints
+              .filter((e) => e.id !== constraints.length - 1)
+              .map((t, i) => ({ ...t, id: i })),
+          });
+        } else if (a.component === "custom_constraint") {
+          updateTable(a.tid, {
+            customConstraints: (table.customConstraints || []).map(
+              (constraint) =>
+                constraint.id === a.cid
+                  ? {
+                      ...constraint,
+                      ...a.undo,
+                    }
+                  : constraint,
+            ),
+          });
+        } else if (a.component === "custom_constraint_delete") {
+          const updatedConstraints = (table.customConstraints || []).slice();
+          updatedConstraints.splice(a.data.id, 0, a.data);
+          updateTable(a.tid, {
+            customConstraints: updatedConstraints.map((t, i) => ({
+              ...t,
+              id: i,
+            })),
+          });
         } else if (a.component === "self") {
           updateTable(a.tid, a.undo);
         }
@@ -504,6 +532,36 @@ export default function ControlPanel({
         } else if (a.component === "unique_constraint_delete") {
           updateTable(a.tid, {
             uniqueConstraints: (table.uniqueConstraints || [])
+              .filter((e) => e.id !== a.data.id)
+              .map((t, i) => ({ ...t, id: i })),
+          });
+        } else if (a.component === "custom_constraint_add") {
+          const constraints = table.customConstraints || [];
+          updateTable(a.tid, {
+            customConstraints: [
+              ...constraints,
+              {
+                id: constraints.length,
+                name: `${table.name}_constraint_${constraints.length}`,
+                definition: "",
+              },
+            ],
+          });
+        } else if (a.component === "custom_constraint") {
+          updateTable(a.tid, {
+            customConstraints: (table.customConstraints || []).map(
+              (constraint) =>
+                constraint.id === a.cid
+                  ? {
+                      ...constraint,
+                      ...a.redo,
+                    }
+                  : constraint,
+            ),
+          });
+        } else if (a.component === "custom_constraint_delete") {
+          updateTable(a.tid, {
+            customConstraints: (table.customConstraints || [])
               .filter((e) => e.id !== a.data.id)
               .map((t, i) => ({ ...t, id: i })),
           });

@@ -62,6 +62,7 @@ export default function DiagramContextProvider({ children }) {
       comment: "",
       indices: [],
       uniqueConstraints: [],
+      customConstraints: [],
       color: defaultBlue,
       collapsed: false,
     };

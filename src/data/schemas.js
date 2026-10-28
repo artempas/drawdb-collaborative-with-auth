@@ -70,6 +70,17 @@ export const tableSchema = {
         required: ["name", "fields"],
       },
     },
+    customConstraints: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          definition: { type: "string" },
+        },
+        required: ["name", "definition"],
+      },
+    },
     color: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" },
     inherits: {
       type: "array",

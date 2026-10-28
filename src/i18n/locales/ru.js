@@ -131,6 +131,11 @@ const ru = {
     use_for_batch_input: "Использовать , для пакетного ввода",
     indices: "Индексы",
     add_index: "Добавить индекс",
+    unique_constraints: "Ограничения уникальности",
+    add_unique_constraint: "Добавить ограничение уникальности",
+    custom_constraints: "Пользовательские ограничения",
+    add_custom_constraint: "Добавить пользовательское ограничение",
+    constraint_definition: "Определение, например CHECK (price > 0)",
     select_fields: "Выберите поля",
     title: "Заголовок",
     not_set: "Не установлено",
@@ -184,6 +189,10 @@ const ru = {
     duplicate_index:
       "Дублирование индекса по имени '{{indexName}}' в таблице '{{tableName}}'",
     empty_index: "Индекс в таблице '{{tableName}}' не индексирует столбцы",
+    duplicate_constraint:
+      "Дублирование ограничения по имени '{{constraintName}}' в таблице '{{tableName}}'",
+    empty_constraint:
+      "Пользовательское ограничение в таблице '{{tableName}}' не имеет определения",
     no_primary_key: "В таблице '{{tableName}}' нет первичного ключа",
     type_with_no_name: "Объявлен тип без названия",
     duplicate_types: "Дублирование типов по имени '{{typeName}}'",
