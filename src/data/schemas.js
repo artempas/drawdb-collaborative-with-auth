@@ -66,6 +66,7 @@ export const tableSchema = {
             type: "array",
             items: { type: "string" },
           },
+          where: { type: "string" },
         },
         required: ["name", "fields"],
       },

@@ -2,6 +2,7 @@ import {
   parseDefault,
   escapeQuotes,
   uniqueConstraintClause,
+  partialUniqueStatements,
   customConstraintClause,
   getFkColumnNames,
 } from "./shared";
@@ -98,7 +99,7 @@ export function toMSSQL(diagram) {
         )
         .join("");
 
-      return `${createTableSql}${tableCommentSql}${columnCommentsSql}${indicesSql}`;
+      return `${createTableSql}${tableCommentSql}${columnCommentsSql}${indicesSql}${partialUniqueStatements(table, DB.MSSQL, (s) => `[${s}]`)}`;
     })
     .join("\n");
 

@@ -3,10 +3,12 @@ import {
   exportFieldComment,
   parseDefault,
   uniqueConstraintClause,
+  partialUniqueStatements,
   customConstraintClause,
   getFkColumnNames,
 } from "./shared";
 import { dbToTypes } from "../../data/datatypes";
+import { DB } from "../../data/constants";
 
 export function toPostgres(diagram) {
   const enumStatements = diagram.enums
@@ -92,7 +94,7 @@ export function toPostgres(diagram) {
         )
         .join("\n");
 
-      return `CREATE TABLE IF NOT EXISTS "${table.name}" (\n${fieldDefinitions}${primaryKeyClause}${uniqueClause}${inheritsClause};\n\n${commentStatements}\n${indexStatements}`;
+      return `CREATE TABLE IF NOT EXISTS "${table.name}" (\n${fieldDefinitions}${primaryKeyClause}${uniqueClause}${inheritsClause};\n\n${commentStatements}\n${indexStatements}${partialUniqueStatements(table, DB.POSTGRES, (s) => `"${s}"`)}`;
     })
     .join("\n\n");
 

@@ -180,7 +180,11 @@ export function toDBML(diagram) {
               (uc) =>
                 `\t\t(${uc.fields
                   .map((f) => quoteIdentifier(f))
-                  .join(", ")}) [ name: '${uc.name}', unique ]`,
+                  .join(", ")}) [ name: '${uc.name}', unique${
+                  typeof uc.where === "string" && uc.where.trim() !== ""
+                    ? `, note: '${uc.where.trim().replace(/'/g, "\\'")}'`
+                    : ""
+                } ]`,
             );
           const entries = [...indexEntries, ...uniqueEntries];
           return entries.length > 0

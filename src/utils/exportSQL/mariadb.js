@@ -2,6 +2,7 @@ import {
   escapeQuotes,
   parseDefault,
   uniqueConstraintClause,
+  partialUniqueStatements,
   customConstraintClause,
   getFkColumnNames,
 } from "./shared";
@@ -62,7 +63,7 @@ export function toMariaDB(diagram) {
                 .map((f) => `\`${f}\``)
                 .join(", ")});`,
           )
-          .join("")}`}`,
+          .join("")}${partialUniqueStatements(table, DB.MARIADB, (s) => `\`${s}\``)}`}`,
     )
     .join("\n")}\n${diagram.references
     .map((r) => {

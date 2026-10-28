@@ -41,9 +41,22 @@ export function exportFieldComment(comment) {
     .join("");
 }
 
+export function hasWhere(uc) {
+  return typeof uc.where === "string" && uc.where.trim() !== "";
+}
+
+export function supportsPartialUnique(database) {
+  return (
+    database === DB.POSTGRES ||
+    database === DB.SQLITE ||
+    database === DB.MSSQL ||
+    database === DB.GENERIC
+  );
+}
+
 export function uniqueConstraintClause(table, quote) {
   const constraints = (table.uniqueConstraints || []).filter(
-    (uc) => Array.isArray(uc.fields) && uc.fields.length > 0,
+    (uc) => Array.isArray(uc.fields) && uc.fields.length > 0 && !hasWhere(uc),
   );
   if (constraints.length === 0) return "";
 
@@ -58,6 +71,28 @@ export function uniqueConstraintClause(table, quote) {
       )
       .join(",\n")
   );
+}
+
+// UNIQUE ... WHERE cannot be a table constraint, so it is emitted as a partial
+// unique index after CREATE TABLE (or as a comment where unsupported).
+export function partialUniqueStatement(tableName, uc, database, quote) {
+  const fields = uc.fields.map((f) => quote(f)).join(", ");
+  const where = uc.where.trim();
+  if (!supportsPartialUnique(database)) {
+    return `-- Partial unique constraint ${uc.name} is not supported by this database: UNIQUE (${uc.fields.join(", ")}) WHERE ${where}`;
+  }
+  const ifNotExists = database === DB.SQLITE ? "IF NOT EXISTS " : "";
+  const stmt = `CREATE UNIQUE INDEX ${ifNotExists}${quote(uc.name)}\nON ${quote(tableName)} (${fields})\nWHERE ${where};`;
+  return database === DB.MSSQL ? stmt + "\nGO" : stmt;
+}
+
+export function partialUniqueStatements(table, database, quote) {
+  const statements = (table.uniqueConstraints || [])
+    .filter(
+      (uc) => Array.isArray(uc.fields) && uc.fields.length > 0 && hasWhere(uc),
+    )
+    .map((uc) => partialUniqueStatement(table.name, uc, database, quote));
+  return statements.length > 0 ? "\n" + statements.join("\n") : "";
 }
 
 export function customConstraintClause(table, quote) {

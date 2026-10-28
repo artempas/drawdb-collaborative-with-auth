@@ -15,6 +15,13 @@ export default function UniqueConstraintDetails({ data, fields, cid, tid }) {
 
   const constraints = table.uniqueConstraints ?? [];
 
+  const updateConstraint = (values) =>
+    updateTable(tid, {
+      uniqueConstraints: constraints.map((constraint) =>
+        constraint.id === cid ? { ...constraint, ...values } : constraint,
+      ),
+    });
+
   return (
     <div className="flex justify-between items-center mb-2">
       <Select
@@ -101,6 +108,35 @@ export default function UniqueConstraintDetails({ data, fields, cid, tid }) {
                     message: t("edit_table", {
                       tableName: table.name,
                       extra: "[unique constraint]",
+                    }),
+                  },
+                ]);
+                setRedoStack([]);
+              }}
+            />
+            <div className="font-semibold my-1">WHERE: </div>
+            <Input
+              value={data.where ?? ""}
+              placeholder={t("unique_where")}
+              readonly={layout.readOnly}
+              className="font-mono"
+              onFocus={() => setEditField({ where: data.where ?? "" })}
+              onChange={(value) => updateConstraint({ where: value })}
+              onBlur={(e) => {
+                if (e.target.value === editField.where) return;
+                setUndoStack((prev) => [
+                  ...prev,
+                  {
+                    action: Action.EDIT,
+                    element: ObjectType.TABLE,
+                    component: "unique_constraint",
+                    tid: tid,
+                    cid: cid,
+                    undo: editField,
+                    redo: { where: e.target.value },
+                    message: t("edit_table", {
+                      tableName: table.name,
+                      extra: "[unique constraint where]",
                     }),
                   },
                 ]);
