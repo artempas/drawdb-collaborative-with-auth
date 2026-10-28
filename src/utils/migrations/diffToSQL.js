@@ -3,6 +3,7 @@ import {
   parseDefault,
   exportFieldComment,
   uniqueConstraintClause,
+  customConstraintClause,
 } from "../exportSQL/shared";
 import { DB } from "../../data/constants";
 import { databases } from "../../data/databases";
@@ -118,7 +119,8 @@ function toTable(table, db) {
       ? `,\n\tPRIMARY KEY(${pk.map((f) => q(f.name)).join(", ")})`
       : "";
 
-  const ucClause = uniqueConstraintClause(table, q);
+  const ucClause =
+    uniqueConstraintClause(table, q) + customConstraintClause(table, q);
 
   let inheritsClause = "";
   if (
@@ -692,6 +694,64 @@ export const generateMigrationSQL = (
                 down.push(dropUC(constraintName));
                 down.push(addUC(constraintName, change.from));
               }
+            }
+          }
+
+          if (childPart.startsWith("customConstraints")) {
+            const property = keys[2];
+            const ns = childPart.indexOf("name=");
+            const constraintName =
+              ns >= 0
+                ? childPart.substring(ns + 5, childPart.indexOf("]", ns))
+                : "";
+            const addCC = (cname, definition) =>
+              database === DB.SQLITE
+                ? `-- SQLite does not support adding constraint ${q(cname)} to existing table ${q(name)}`
+                : `ALTER TABLE ${q(name)} ADD CONSTRAINT ${q(cname)} ${definition};`;
+            const dropCC = (cname) =>
+              database === DB.SQLITE
+                ? `-- SQLite does not support dropping constraint ${q(cname)} from existing table ${q(name)}`
+                : `ALTER TABLE ${q(name)} DROP CONSTRAINT ${q(cname)};`;
+
+            if (!property) {
+              if (change.to && !change.from) {
+                up.push(addCC(change.to.name, change.to.definition));
+                down.push(dropCC(change.to.name));
+              }
+              if (change.from && !change.to) {
+                up.push(dropCC(change.from.name));
+                down.push(addCC(change.from.name, change.from.definition));
+              }
+            }
+
+            if (property === "name") {
+              if (database === DB.POSTGRES || database === DB.ORACLESQL) {
+                up.push(
+                  `ALTER TABLE ${q(name)} RENAME CONSTRAINT ${q(change.from)} TO ${q(change.to)};`,
+                );
+                down.push(
+                  `ALTER TABLE ${q(name)} RENAME CONSTRAINT ${q(change.to)} TO ${q(change.from)};`,
+                );
+              } else {
+                up.push(
+                  `-- Rename constraint: DROP ${q(change.from)} then ADD with new name`,
+                );
+                down.push(
+                  `-- Rename constraint: DROP ${q(change.to)} then ADD with old name`,
+                );
+              }
+            }
+
+            if (
+              property === "definition" &&
+              constraintName &&
+              typeof change.from === "string" &&
+              typeof change.to === "string"
+            ) {
+              up.push(dropCC(constraintName));
+              up.push(addCC(constraintName, change.to));
+              down.push(dropCC(constraintName));
+              down.push(addCC(constraintName, change.from));
             }
           }
 

@@ -3,6 +3,7 @@ import {
   getInlineFK,
   parseDefault,
   uniqueConstraintClause,
+  customConstraintClause,
 } from "./shared";
 
 import { dbToTypes } from "../../data/datatypes";
@@ -34,7 +35,7 @@ export function toSqlite(diagram) {
               .map((f) => `"${f.name}"`)
               .join(", ")})${inlineFK !== "" ? ",\n" : ""}`
           : ""
-      }${inlineFK}${uniqueConstraintClause(table, (s) => `"${s}"`)}\n);\n${table.indices
+      }${inlineFK}${uniqueConstraintClause(table, (s) => `"${s}"`)}${customConstraintClause(table, (s) => `"${s}"`)}\n);\n${table.indices
         .map(
           (i) =>
             `\nCREATE ${i.unique ? "UNIQUE " : ""}INDEX IF NOT EXISTS "${

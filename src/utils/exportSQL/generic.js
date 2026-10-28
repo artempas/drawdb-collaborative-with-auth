@@ -5,6 +5,7 @@ import {
   getInlineFK,
   parseDefault,
   uniqueConstraintClause,
+  customConstraintClause,
   getFkColumnNames,
 } from "./shared";
 
@@ -224,7 +225,7 @@ export function jsonToMySQL(obj) {
                 .map((f) => `\`${f.name}\``)
                 .join(", ")})`
             : ""
-        }${uniqueConstraintClause(table, (s) => `\`${s}\``)}\n)${table.comment ? ` COMMENT='${escapeQuotes(table.comment)}'` : ""};\n${`\n${table.indices
+        }${uniqueConstraintClause(table, (s) => `\`${s}\``)}${customConstraintClause(table, (s) => `\`${s}\``)}\n)${table.comment ? ` COMMENT='${escapeQuotes(table.comment)}'` : ""};\n${`\n${table.indices
           .map(
             (i) =>
               `CREATE ${i.unique ? "UNIQUE " : ""}INDEX \`${i.name}\`\nON \`${table.name}\` (${i.fields
@@ -327,7 +328,7 @@ export function jsonToPostgreSQL(obj) {
                 .map((f) => `"${f.name}"`)
                 .join(", ")})`
             : ""
-        }${uniqueConstraintClause(table, (s) => `"${s}"`)}\n);\n${table.comment != "" ? `\nCOMMENT ON TABLE ${table.name} IS '${escapeQuotes(table.comment)}';\n` : ""}${table.fields
+        }${uniqueConstraintClause(table, (s) => `"${s}"`)}${customConstraintClause(table, (s) => `"${s}"`)}\n);\n${table.comment != "" ? `\nCOMMENT ON TABLE ${table.name} IS '${escapeQuotes(table.comment)}';\n` : ""}${table.fields
           .map((field) =>
             field.comment.trim() !== ""
               ? `COMMENT ON COLUMN ${table.name}.${field.name} IS '${escapeQuotes(field.comment)}';\n`
@@ -426,7 +427,7 @@ export function jsonToSQLite(obj) {
               .map((f) => `"${f.name}"`)
               .join(", ")})${inlineFK !== "" ? ",\n" : ""}`
           : ""
-      }${inlineFK}${uniqueConstraintClause(table, (s) => `"${s}"`)}\n);\n${table.indices
+      }${inlineFK}${uniqueConstraintClause(table, (s) => `"${s}"`)}${customConstraintClause(table, (s) => `"${s}"`)}\n);\n${table.indices
         .map(
           (i) =>
             `\nCREATE ${i.unique ? "UNIQUE " : ""}INDEX IF NOT EXISTS "${
@@ -475,7 +476,7 @@ export function jsonToMariaDB(obj) {
                 .map((f) => `\`${f.name}\``)
                 .join(", ")})`
             : ""
-        }${uniqueConstraintClause(table, (s) => `\`${s}\``)}\n)${table.comment ? ` COMMENT='${escapeQuotes(table.comment)}'` : ""};${`\n${table.indices
+        }${uniqueConstraintClause(table, (s) => `\`${s}\``)}${customConstraintClause(table, (s) => `\`${s}\``)}\n)${table.comment ? ` COMMENT='${escapeQuotes(table.comment)}'` : ""};${`\n${table.indices
           .map(
             (i) =>
               `CREATE ${i.unique ? "UNIQUE " : ""}INDEX \`${
@@ -551,7 +552,7 @@ export function jsonToSQLServer(obj) {
                 .map((f) => `[${f.name}]`)
                 .join(", ")})`
             : ""
-        }${uniqueConstraintClause(table, (s) => `[${s}]`)}\n);\nGO\n${table.indices
+        }${uniqueConstraintClause(table, (s) => `[${s}]`)}${customConstraintClause(table, (s) => `[${s}]`)}\n);\nGO\n${table.indices
           .map(
             (i) =>
               `\nCREATE ${i.unique ? "UNIQUE " : ""}INDEX [${
@@ -630,7 +631,7 @@ export function jsonToOracleSQL(obj) {
                 .map((f) => `"${f.name}"`)
                 .join(", ")})`
             : ""
-        }${uniqueConstraintClause(table, (s) => `"${s}"`)}\n);\n${table.indices
+        }${uniqueConstraintClause(table, (s) => `"${s}"`)}${customConstraintClause(table, (s) => `"${s}"`)}\n);\n${table.indices
           .map(
             (i) =>
               `\nCREATE ${i.unique ? "UNIQUE " : ""}INDEX "${i.name}"\n  ON "${

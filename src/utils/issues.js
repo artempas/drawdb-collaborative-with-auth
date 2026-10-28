@@ -146,6 +146,25 @@ export function getIssues(diagram) {
       }
     });
 
+    const duplicateCustomConstraints = {};
+    (table.customConstraints || []).forEach((cc) => {
+      if (cc.name.trim() !== "") {
+        if (duplicateCustomConstraints[cc.name]) {
+          issues.push(
+            i18n.t("duplicate_constraint", {
+              tableName: table.name,
+              constraintName: cc.name,
+            }),
+          );
+        } else {
+          duplicateCustomConstraints[cc.name] = true;
+        }
+      }
+      if (cc.definition.trim() === "") {
+        issues.push(i18n.t("empty_constraint", { tableName: table.name }));
+      }
+    });
+
     if (!hasPrimaryKey) {
       issues.push(i18n.t("no_primary_key", { tableName: table.name }));
     }

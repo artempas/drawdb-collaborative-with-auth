@@ -2,6 +2,7 @@ import {
   parseDefault,
   escapeQuotes,
   uniqueConstraintClause,
+  customConstraintClause,
   getFkColumnNames,
 } from "./shared";
 
@@ -69,7 +70,9 @@ export function toMSSQL(diagram) {
               .join(", ")})`
           : "";
 
-      const uniqueSql = uniqueConstraintClause(table, (s) => `[${s}]`);
+      const uniqueSql =
+        uniqueConstraintClause(table, (s) => `[${s}]`) +
+        customConstraintClause(table, (s) => `[${s}]`);
 
       const createTableSql = `CREATE TABLE [${table.name}] (\n${fieldsSql}${primaryKeySql}${uniqueSql}\n);\nGO\n`;
 

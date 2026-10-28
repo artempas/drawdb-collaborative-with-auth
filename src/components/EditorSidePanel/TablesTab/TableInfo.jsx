@@ -21,6 +21,7 @@ import { Action, ObjectType, State, DB } from "../../../data/constants";
 import TableField from "./TableField";
 import IndexDetails from "./IndexDetails";
 import UniqueConstraintDetails from "./UniqueConstraintDetails";
+import CustomConstraintDetails from "./CustomConstraintDetails";
 import { useTranslation } from "react-i18next";
 import { SortableList } from "../../SortableList/SortableList";
 import { nanoid } from "nanoid";
@@ -30,6 +31,7 @@ export default function TableInfo({ data }) {
   const { t } = useTranslation();
   const [indexActiveKey, setIndexActiveKey] = useState("");
   const [uniqueActiveKey, setUniqueActiveKey] = useState("");
+  const [customActiveKey, setCustomActiveKey] = useState("");
   const [commentActiveKey, setCommentActiveKey] = useState("");
   const [showComment, setShowComment] = useState(false);
   const { layout } = useLayout();
@@ -182,6 +184,35 @@ export default function TableInfo({ data }) {
           id: constraints.length,
           name: `${data.name}_unique_${constraints.length}`,
           fields: [],
+        },
+      ],
+    });
+  };
+
+  const addCustomConstraint = () => {
+    setCustomActiveKey("1");
+    const constraints = data.customConstraints || [];
+    setUndoStack((prev) => [
+      ...prev,
+      {
+        action: Action.EDIT,
+        element: ObjectType.TABLE,
+        component: "custom_constraint_add",
+        tid: data.id,
+        message: t("edit_table", {
+          tableName: data.name,
+          extra: "[add custom constraint]",
+        }),
+      },
+    ]);
+    setRedoStack([]);
+    updateTable(data.id, {
+      customConstraints: [
+        ...constraints,
+        {
+          id: constraints.length,
+          name: `${data.name}_constraint_${constraints.length}`,
+          definition: "",
         },
       ],
     });
@@ -356,6 +387,33 @@ export default function TableInfo({ data }) {
         </Card>
       )}
 
+      {(data.customConstraints || []).length > 0 && (
+        <Card
+          bodyStyle={{ padding: "4px" }}
+          style={{ marginTop: "12px", marginBottom: "12px" }}
+          headerLine={false}
+        >
+          <Collapse
+            activeKey={customActiveKey}
+            keepDOM={false}
+            lazyRender
+            onChange={(itemKey) => setCustomActiveKey(itemKey)}
+            accordion
+          >
+            <Collapse.Panel header={t("custom_constraints")} itemKey="1">
+              {data.customConstraints.map((cc, k) => (
+                <CustomConstraintDetails
+                  key={"custom_constraint_" + k}
+                  data={cc}
+                  cid={k}
+                  tid={data.id}
+                />
+              ))}
+            </Collapse.Panel>
+          </Collapse>
+        </Card>
+      )}
+
       {((data.comment && data.comment.trim() !== "") || showComment) && (
         <Card
           bodyStyle={{ padding: "4px" }}
@@ -425,6 +483,9 @@ export default function TableInfo({ data }) {
                 </Dropdown.Item>
                 <Dropdown.Item onClick={addUniqueConstraint}>
                   {t("add_unique_constraint")}
+                </Dropdown.Item>
+                <Dropdown.Item onClick={addCustomConstraint}>
+                  {t("add_custom_constraint")}
                 </Dropdown.Item>
                 <Dropdown.Item onClick={addIndex}>
                   {t("add_index")}
