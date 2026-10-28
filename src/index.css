@@ -238,6 +238,10 @@
   pointer-events: stroke;
 }
 
+.relationship-path.no-action {
+  stroke: #f59e0b;
+}
+
 .group:hover .relationship-path {
   stroke: #0084d1;
   stroke-width: 6;

@@ -3,7 +3,7 @@ import { useSelect, useDiagram, useSaveState, useLayout } from "../../../hooks";
 import Empty from "../Empty";
 import SearchBar from "./SearchBar";
 import RelationshipInfo from "./RelationshipInfo";
-import { ObjectType, State } from "../../../data/constants";
+import { Constraint, ObjectType, State } from "../../../data/constants";
 import { useTranslation } from "react-i18next";
 import { SortableList } from "../../SortableList/SortableList";
 import { DragHandle } from "../../SortableList/DragHandle";
@@ -58,6 +58,13 @@ export default function RelationshipsTab() {
                       <div className="overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.name}
                       </div>
+                      {(item.updateConstraint === Constraint.NONE ||
+                        item.deleteConstraint === Constraint.NONE) && (
+                        <span
+                          className="shrink-0 w-2 h-2 rounded-full bg-amber-500"
+                          title={`${t("on_update")} / ${t("on_delete")}: ${Constraint.NONE}`}
+                        />
+                      )}
                     </div>
                   }
                   itemKey={`${item.id}`}
